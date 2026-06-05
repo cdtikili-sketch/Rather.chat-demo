@@ -1,423 +1,384 @@
-import React, { useState } from 'react';
-import { DemoMode, DemoContext } from './types';
-import CompanyInput from './components/CompanyInput';
-import DemoEngine from './components/DemoEngine';
+import { useCallback, useState } from "react";
 import {
-  MessageCircle, Users, TrendingUp, Zap, ArrowRight, Shield,
-  Star, BarChart3, Globe, CheckCircle2, PhoneCall, Target, ShoppingCart, X, Play, ChevronLeft
-} from 'lucide-react';
+  ArrowRight,
+  BarChart3,
+  CheckCircle2,
+  ChevronLeft,
+  Globe,
+  MessageCircle,
+  Pause,
+  PhoneCall,
+  Play,
+  RefreshCw,
+  Shield,
+  ShoppingCart,
+  Star,
+  Target,
+  TrendingUp,
+  Users,
+  X,
+  Zap,
+} from "lucide-react";
+import { CompanyInput, type CompanySubmit } from "./components/CompanyInput";
+import { DemoEngine } from "./components/DemoEngine";
+import type { DemoContext, DemoMode } from "./types";
 
-const DEMO_MODES: { id: DemoMode; label: string; icon: React.ReactNode; color: string; tagline: string; description: string }[] = [
-  {
-    id: 'contact',
-    label: 'CONTACT',
-    icon: <PhoneCall className="w-5 h-5" />,
-    color: 'from-blue-600 to-blue-500',
-    tagline: 'Capture & Qualify Leads',
-    description: 'Capture lead details via WhatsApp from Meta Ads or website traffic. Pre-qualify in real time.',
-  },
-  {
-    id: 'connect',
-    label: 'CONNECT',
-    icon: <Users className="w-5 h-5" />,
-    color: 'from-teal-600 to-teal-500',
-    tagline: 'Engage & Advise',
-    description: 'Keep customers engaged with meaningful conversations, quotes and expert knowledge.',
-  },
-  {
-    id: 'convert',
-    label: 'CONVERT',
-    icon: <ShoppingCart className="w-5 h-5" />,
-    color: 'from-green-600 to-green-500',
-    tagline: 'Close Sales on WhatsApp',
-    description: 'Complete purchases, policies and subscriptions directly in WhatsApp — 60% higher conversion.',
-  },
-  {
-    id: 'master',
-    label: 'MASTER DEMO',
-    icon: <Zap className="w-5 h-5" />,
-    color: 'from-[#075E54] to-[#128C7E]',
-    tagline: 'All Three Solutions in One',
-    description: 'The complete Contact → Connect → Convert workflow demonstrating the full rather.chat platform.',
-  },
+const DEMO_MODES: {
+  id: DemoMode;
+  label: string;
+  tagline: string;
+  description: string;
+  color: string;
+  Icon: typeof PhoneCall;
+}[] = [
+  { id: "contact", label: "CONTACT", tagline: "Capture & Qualify Leads", description: "Capture lead details via WhatsApp from Meta Ads or website traffic.", color: "from-blue-600 to-blue-500", Icon: PhoneCall },
+  { id: "connect", label: "CONNECT", tagline: "Engage & Advise", description: "Keep customers engaged with quotes and expert knowledge.", color: "from-teal-600 to-teal-500", Icon: Users },
+  { id: "convert", label: "CONVERT", tagline: "Close Sales on WhatsApp", description: "Complete purchases, policies and subs directly in WhatsApp.", color: "from-green-600 to-green-500", Icon: ShoppingCart },
+  { id: "master", label: "MASTER DEMO", tagline: "All Three Solutions in One", description: "Contact \u2192 Connect \u2192 Convert end-to-end workflow.", color: "from-[#075E54] to-[#128C7E]", Icon: Zap },
 ];
 
 const STATS = [
-  { value: '17M+', label: 'South Africans Reached', icon: <Globe className="w-5 h-5" /> },
-  { value: '300M+', label: 'Messages Processed', icon: <MessageCircle className="w-5 h-5" /> },
-  { value: '85%', label: 'AI-Completed Sales', icon: <Target className="w-5 h-5" /> },
-  { value: '60%', label: 'Conversion Uplift', icon: <TrendingUp className="w-5 h-5" /> },
+  { value: "17M+", label: "SA Reach", Icon: Globe },
+  { value: "300M+", label: "Messages", Icon: MessageCircle },
+  { value: "85%", label: "AI Sales", Icon: Target },
+  { value: "60%", label: "Conv. Uplift", Icon: TrendingUp },
 ];
 
 const FEATURES = [
-  { icon: <Shield className="w-4 h-4" />, label: 'Meta Verified Technology Partner' },
-  { icon: <CheckCircle2 className="w-4 h-4" />, label: 'WhatsApp Business API Compliant' },
-  { icon: <Star className="w-4 h-4" />, label: 'Trusted by Capitec, Hollard & more' },
-  { icon: <BarChart3 className="w-4 h-4" />, label: 'End-to-end Encrypted Conversations' },
-];
-
-interface DemoState {
-  companyName: string;
-  companyUrl: string;
-  industry: string;
-  active: boolean;
-}
-
-const salesJourney = [
-  { step: 1, label: 'Trigger', desc: 'Meta ad / Website CTA', status: 'complete' },
-  { step: 2, label: 'Starter phrase', desc: 'User opts in via WhatsApp', status: 'complete' },
-  { step: 3, label: 'Pre-qualification', desc: 'Capture name / intent', status: 'active' },
-  { step: 4, label: 'Conversion', desc: 'Handoff / quote / sale', status: 'pending' },
+  { Icon: Shield, label: "Meta Verified Tech Partner" },
+  { Icon: CheckCircle2, label: "WhatsApp Business API" },
+  { Icon: Star, label: "Trusted by Capitec, Hollard" },
+  { Icon: BarChart3, label: "End-to-end Encrypted" },
 ];
 
 export default function App() {
-  const [selectedMode, setSelectedMode] = useState<DemoMode>('master');
-  const [demoState, setDemoState] = useState<DemoState>({
-    companyName: 'rather.chat',
-    companyUrl: 'rather.chat',
-    industry: 'general',
-    active: false,
-  });
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [demoKey, setDemoKey] = useState(0);
+  const [selectedMode, setSelectedMode] = useState<DemoMode>("master");
   const [showDemo, setShowDemo] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [autoMode, setAutoMode] = useState(false);
   const [speed, setSpeed] = useState(1);
-  const [demoStarted, setDemoStarted] = useState(false);
+  const [demoKey, setDemoKey] = useState(0);
+  const [ctx, setCtx] = useState<DemoContext>({
+    companyName: "rather.chat",
+    companyUrl: "rather.chat",
+    industry: "general",
+  });
+  const [stats, setStats] = useState({ botCount: 0, userCount: 0, progress: 0, dataPoints: 0 });
 
-  const handleGenerateDemo = (name: string, url: string, industry: string) => {
+  const handleGenerate = (data: CompanySubmit) => {
     setIsGenerating(true);
     setTimeout(() => {
-      setDemoState({ companyName: name, companyUrl: url, industry, active: true });
-      setDemoKey(k => k + 1);
+      setCtx({
+        companyName: data.companyName,
+        companyUrl: data.companyUrl,
+        industry: data.industry,
+        accent: data.accent,
+        logo: data.logo,
+      });
+      setDemoKey((k) => k + 1);
       setShowDemo(true);
       setAutoMode(false);
-      setDemoStarted(false);
       setIsGenerating(false);
-    }, 1200);
+    }, 900);
   };
 
-  const handleModeChange = (mode: DemoMode) => {
-    setSelectedMode(mode);
-    setDemoKey(k => k + 1);
+  const handleReset = () => {
+    setDemoKey((k) => k + 1);
+    setAutoMode(false);
   };
 
-  const context: DemoContext = {
-    companyName: demoState.companyName,
-    companyUrl: demoState.companyUrl,
-    industry: demoState.industry,
-  };
+  const onStatsChange = useCallback(
+    (s: { botCount: number; userCount: number; progress: number; dataPoints: number }) => {
+      setStats(s);
+    },
+    [],
+  );
 
-  // Full-screen demo view
+  // ════════════ DEMO MODAL ════════════
   if (showDemo) {
+    const mode = DEMO_MODES.find((d) => d.id === selectedMode)!;
+    const journey = [
+      { step: 1, label: "Trigger", desc: "Meta ad / website CTA" },
+      { step: 2, label: "Opt-in", desc: "User taps WhatsApp" },
+      { step: 3, label: "Qualify", desc: "Name / phone / intent" },
+      { step: 4, label: "Conversion", desc: "Quote / handoff / sale" },
+    ];
+
     return (
-      <div className="fixed inset-0 bg-[#0f1419] z-50 flex flex-col">
+      <div className="fixed inset-0 z-50 flex flex-col" style={{ background: "#FAF8F2" }}>
         {/* Top bar */}
-        <div className="bg-[#1a1f28] border-b border-gray-700 px-4 sm:px-6 py-3 flex items-center justify-between gap-2">
+        <div
+          className="flex items-center justify-between px-4 py-2 gap-3 flex-shrink-0"
+          style={{ background: "#FAF8F2", borderBottom: "1px solid rgba(64,170,52,0.18)" }}
+        >
           <div className="flex items-center gap-2 min-w-0">
             <button
               onClick={() => setShowDemo(false)}
-              className="p-2 hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
+              className="p-2 hover:bg-black/5 rounded-lg transition-colors"
+              aria-label="Back"
             >
-              <ChevronLeft className="w-5 h-5 text-gray-400" />
+              <ChevronLeft className="w-5 h-5 text-gray-700" />
             </button>
-            <div className="min-w-0">
-              <p className="text-green-400 font-bold text-sm truncate">rather.chat</p>
-              <p className="text-gray-400 text-xs truncate">{demoState.companyName} · {selectedMode.toUpperCase()}</p>
+            <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-[#075E54] to-[#128C7E] flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
+              RC
+            </div>
+            <div className="hidden md:block border-l pl-3 ml-1" style={{ borderColor: "rgba(10,31,68,0.12)" }}>
+              <p className="text-[0.7rem] font-bold text-[#0A1F44] truncate">{ctx.companyName}</p>
+              <p className="text-[0.6rem] text-gray-500 uppercase tracking-wider">{selectedMode}</p>
             </div>
           </div>
 
-          {/* Mode buttons */}
           <div className="flex items-center gap-1 flex-wrap justify-end">
-            {DEMO_MODES.map((dm) => (
-              <button
-                key={dm.id}
-                onClick={() => handleModeChange(dm.id)}
-                className={`flex items-center gap-1 px-2 sm:px-3 py-1.5 rounded text-xs font-semibold transition-all flex-shrink-0 ${
-                  selectedMode === dm.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                }`}
-              >
-                {dm.icon}
-                <span className="hidden sm:inline">{dm.label}</span>
-              </button>
-            ))}
+            {DEMO_MODES.map((dm) => {
+              const active = selectedMode === dm.id;
+              return (
+                <button
+                  key={dm.id}
+                  onClick={() => {
+                    setSelectedMode(dm.id);
+                    setDemoKey((k) => k + 1);
+                  }}
+                  className={`flex items-center gap-1 px-2.5 sm:px-3 py-1.5 rounded-md text-[0.7rem] font-bold uppercase tracking-wider transition-all ${
+                    active
+                      ? "bg-[#40aa34] text-white shadow"
+                      : "bg-black/5 text-gray-700 hover:bg-black/10"
+                  }`}
+                >
+                  <dm.Icon className="w-3.5 h-3.5" />
+                  <span className="hidden sm:inline">{dm.label}</span>
+                </button>
+              );
+            })}
           </div>
 
           <button
             onClick={() => setShowDemo(false)}
-            className="p-2 hover:bg-gray-700 rounded-lg transition-colors flex-shrink-0"
+            className="p-2 hover:bg-black/5 rounded-lg transition-colors"
           >
-            <X className="w-5 h-5 text-gray-400" />
+            <X className="w-5 h-5 text-gray-700" />
           </button>
         </div>
 
-        {/* Main content */}
-        <div className="flex-1 flex overflow-hidden flex-col lg:flex-row bg-white">
-          {/* Left sidebar */}
-          <div className="hidden lg:flex lg:w-64 bg-white border-r border-gray-200 overflow-y-auto flex-col p-4 space-y-4">
-            {/* Active company */}
+        {/* Body */}
+        <div className="flex-1 flex overflow-hidden">
+          {/* LEFT SIDEBAR */}
+          <aside
+            className="hidden lg:flex w-72 overflow-y-auto flex-col p-4 space-y-3 flex-shrink-0 bg-white"
+            style={{ borderRight: "1px solid rgba(27,31,74,0.08)" }}
+          >
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <p className="text-xs text-gray-500 uppercase tracking-wide mb-3 font-bold">Current Demo</p>
-              <div className="flex items-center gap-2 mb-3">
-                <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-blue-600 to-blue-500 flex items-center justify-center text-xs font-bold text-white flex-shrink-0">
-                  {demoState.companyName.charAt(0).toUpperCase()}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-gray-900 truncate">{demoState.companyName}</p>
-                  <p className="text-xs text-gray-500 truncate">{demoState.companyUrl}</p>
+              <p className="text-[0.62rem] text-gray-500 uppercase tracking-wider mb-2 font-bold">Current Demo</p>
+              <div className="flex items-center gap-2 mb-2">
+                {ctx.logo ? (
+                  <img src={ctx.logo} alt="" className="w-9 h-9 rounded-lg object-cover bg-white" />
+                ) : (
+                  <div
+                    className="w-9 h-9 rounded-lg flex items-center justify-center text-xs font-bold text-white"
+                    style={{ background: ctx.accent || "#40aa34" }}
+                  >
+                    {ctx.companyName.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <p className="text-sm font-bold text-gray-900 truncate">{ctx.companyName}</p>
+                  <p className="text-xs text-gray-500 truncate">{ctx.companyUrl}</p>
                 </div>
               </div>
               <div className="flex gap-1 flex-wrap">
-                {['Contact', 'Connect', 'Convert'].map((tag) => (
-                  <span key={tag} className="text-xs px-2 py-1 rounded-full bg-blue-100 text-blue-700 border border-blue-200">
-                    {tag}
-                  </span>
-                ))}
+                <span className="text-[0.6rem] px-2 py-0.5 rounded-full bg-[#40aa34]/10 text-[#40aa34] border border-[#40aa34]/20 font-semibold uppercase">
+                  {ctx.industry}
+                </span>
               </div>
             </div>
 
-            {/* Simulation controls */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Simulation</p>
+              <p className="text-[0.62rem] font-bold text-gray-500 uppercase tracking-wider mb-2">Simulation</p>
               <div className="flex gap-2 mb-3">
                 <button
                   onClick={() => setAutoMode(true)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
-                    autoMode ? 'bg-green-600 text-white shadow-lg shadow-green-600/30' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all ${
+                    autoMode ? "bg-[#40aa34] text-white shadow" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
                   <Play className="w-3 h-3" /> AUTO
                 </button>
                 <button
                   onClick={() => setAutoMode(false)}
-                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all ${
-                    !autoMode ? 'bg-gray-400 text-white' : 'bg-gray-200 text-gray-600 hover:bg-gray-300'
+                  className={`flex-1 py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1 ${
+                    !autoMode ? "bg-[#0A1F44] text-white shadow" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
                   }`}
                 >
-                  MANUAL
+                  <Pause className="w-3 h-3" /> MANUAL
                 </button>
               </div>
-              {autoMode && (
-                <div>
-                  <div className="flex justify-between items-center mb-2">
-                    <label className="text-xs text-gray-600">Speed</label>
-                    <span className="text-xs font-bold text-green-600">{speed}x</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="2"
-                    step="0.5"
-                    value={speed}
-                    onChange={(e) => setSpeed(parseFloat(e.target.value))}
-                    className="w-full accent-green-600 rounded-full"
-                  />
-                </div>
-              )}
-
-              {/* Play Demo Button */}
+              <label className="text-[0.62rem] text-gray-500 font-semibold uppercase tracking-wider flex justify-between items-center mb-1">
+                Speed <span className="text-[#40aa34]">{speed.toFixed(1)}x</span>
+              </label>
+              <input
+                type="range"
+                min={0.5}
+                max={2.5}
+                step={0.1}
+                value={speed}
+                onChange={(e) => setSpeed(parseFloat(e.target.value))}
+                className="w-full accent-[#40aa34]"
+              />
               <button
-                onClick={() => setDemoStarted(true)}
-                disabled={demoStarted}
-                className={`w-full mt-4 py-2.5 rounded-lg text-sm font-bold transition-all flex items-center justify-center gap-2 ${
-                  !demoStarted
-                    ? 'bg-[#128C7E] text-white hover:bg-[#0f6a5f] cursor-pointer'
-                    : 'bg-gray-300 text-gray-600 cursor-not-allowed'
-                }`}
+                onClick={handleReset}
+                className="mt-3 w-full py-2 rounded-lg text-xs font-bold flex items-center justify-center gap-1.5 bg-gray-100 text-gray-700 hover:bg-gray-200 transition"
               >
-                <Play className="w-4 h-4" />
-                Play Demo
+                <RefreshCw className="w-3 h-3" /> Restart conversation
               </button>
             </div>
 
-            {/* Stats */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-4">Live Stats</p>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-                  <p className="text-2xl font-black text-green-600">4</p>
-                  <p className="text-xs text-gray-600 mt-1">Bot Msgs</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-                  <p className="text-2xl font-black text-blue-600">4</p>
-                  <p className="text-xs text-gray-600 mt-1">User Msgs</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-                  <p className="text-2xl font-black text-purple-600">63%</p>
-                  <p className="text-xs text-gray-600 mt-1">Progress</p>
-                </div>
-                <div className="bg-white rounded-lg p-3 text-center border border-gray-200">
-                  <p className="text-2xl font-black text-yellow-600">2</p>
-                  <p className="text-xs text-gray-600 mt-1">Data Points</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Sales journey */}
-            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Sales Journey</p>
-              <div className="space-y-3">
-                {salesJourney.map((j, i) => (
-                  <div key={i} className="flex gap-3">
-                    <div
-                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 shadow-md ${
-                        j.status === 'complete'
-                          ? 'bg-green-500 text-white'
-                          : j.status === 'active'
-                          ? 'bg-blue-500 text-white'
-                          : 'bg-gray-300 text-gray-600'
-                      }`}
-                    >
-                      {j.status === 'complete' ? '✓' : j.step}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="text-xs font-bold text-gray-900">{j.label}</p>
-                      <p className="text-xs text-gray-600">{j.desc}</p>
-                    </div>
+              <p className="text-[0.62rem] font-bold text-gray-500 uppercase tracking-wider mb-3">Live Stats</p>
+              <div className="grid grid-cols-2 gap-2">
+                {[
+                  { n: stats.botCount, l: "Bot msgs", c: "#40aa34" },
+                  { n: stats.userCount, l: "User msgs", c: "#0A1F44" },
+                  { n: `${stats.progress}%`, l: "Progress", c: "#F77F23" },
+                  { n: stats.dataPoints, l: "Data points", c: "#075E54" },
+                ].map((s) => (
+                  <div key={s.l} className="bg-white rounded-lg p-2 text-center border border-gray-200">
+                    <p className="text-xl font-black" style={{ color: s.c }}>{s.n}</p>
+                    <p className="text-[0.6rem] text-gray-600 mt-0.5 uppercase tracking-wide">{s.l}</p>
                   </div>
                 ))}
               </div>
+              <div className="mt-3 h-1 rounded-full bg-black/5 overflow-hidden">
+                <div className="h-full transition-all duration-500" style={{ width: `${stats.progress}%`, background: "linear-gradient(90deg,#40aa34,#00E5A0)" }} />
+              </div>
             </div>
-          </div>
 
-          {/* Center: demo content */}
-          <div className="flex-1 flex items-center justify-center overflow-hidden bg-gradient-to-br from-[#0f1419] via-[#1a1f28] to-[#151a22] relative p-4 lg:p-0">
-            {/* Background */}
+            <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
+              <p className="text-[0.62rem] font-bold text-gray-500 uppercase tracking-wider mb-3">Sales Journey</p>
+              <div className="space-y-2.5">
+                {journey.map((j, i) => {
+                  const done = stats.progress >= ((i + 1) / 4) * 100;
+                  const active = i === Math.floor(stats.progress / 25) && !done;
+                  return (
+                    <div key={j.label} className="flex gap-2.5">
+                      <div
+                        className="w-6 h-6 rounded-full flex items-center justify-center text-[0.62rem] font-bold flex-shrink-0"
+                        style={{
+                          background: done ? "#40aa34" : active ? "#F77F23" : "rgba(0,0,0,0.06)",
+                          color: done || active ? "white" : "#6B7393",
+                        }}
+                      >
+                        {done ? "\u2713" : j.step}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-bold text-gray-900">{j.label}</p>
+                        <p className="text-[0.65rem] text-gray-600">{j.desc}</p>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </aside>
+
+          {/* CENTER PHONE */}
+          <section
+            className="flex-1 relative flex items-center justify-center overflow-hidden p-4"
+            style={{
+              backgroundColor: "#0A1F44",
+              backgroundImage: "linear-gradient(180deg, rgba(10,31,68,0.78), rgba(8,20,46,0.96)), url(/Rocket.jpg)",
+              backgroundSize: "cover",
+              backgroundPosition: "center",
+            }}
+          >
+            <div className="absolute top-6 left-1/2 -translate-x-1/2 text-center z-10 pointer-events-none px-4 max-w-md">
+              <h2 className="text-xl lg:text-2xl font-black text-white">{mode.label}</h2>
+              <p className="text-sm text-[#40aa34] font-semibold mt-0.5">{mode.tagline}</p>
+            </div>
+
+            {/* Phone frame */}
             <div
-              className="absolute inset-0"
+              className="relative z-10 mt-12"
               style={{
-                backgroundImage: 'url(/Rocket.jpg)',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
+                width: 320,
+                height: 640,
+                background: "#0b0b0b",
+                borderRadius: 44,
+                padding: 5,
+                boxShadow: "0 40px 90px rgba(0,0,0,0.55), 0 0 0 1.5px rgba(255,255,255,0.08)",
               }}
-            />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#0f1419]/75 via-[#1a1f28]/70 to-[#0f1419]/75" />
-
-            {/* Demo engine renders its own phone frame */}
-            <div className="relative z-10 w-full h-full max-w-md">
+            >
               <DemoEngine
                 key={`${selectedMode}-${demoKey}`}
                 mode={selectedMode}
-                context={context}
-                autoMode={demoStarted && autoMode}
-                onAutoModeChange={(enabled) => {
-                  setDemoStarted(true);
-                  setAutoMode(enabled);
-                }}
+                context={ctx}
+                autoMode={autoMode}
                 speed={speed}
+                onStatsChange={onStatsChange}
               />
             </div>
+          </section>
 
-            {/* Center text overlay */}
-            <div className="absolute top-8 left-4 right-4 text-center z-10 pointer-events-none lg:top-12 lg:left-12 lg:right-12">
-              {(() => {
-                const dm = DEMO_MODES.find(d => d.id === selectedMode);
-                return dm ? (
-                  <div>
-                    <h2 className="text-2xl lg:text-3xl font-black text-white mb-1">{dm.label}</h2>
-                    <p className="text-base lg:text-lg text-green-300">{dm.tagline}</p>
-                  </div>
-                ) : null;
-              })()}
-            </div>
-          </div>
-
-          {/* Right sidebar */}
-          <div className="hidden lg:flex lg:w-72 bg-white border-l border-gray-200 overflow-y-auto flex-col p-4 space-y-4">
-            {/* Compliance checklist */}
+          {/* RIGHT SIDEBAR */}
+          <aside
+            className="hidden xl:flex w-72 overflow-y-auto flex-col p-4 space-y-3 flex-shrink-0 bg-white"
+            style={{ borderLeft: "1px solid rgba(27,31,74,0.08)" }}
+          >
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Meta API Compliance</p>
-              <div className="space-y-2.5 text-xs">
+              <p className="text-[0.62rem] font-bold text-gray-500 uppercase tracking-wider mb-3">Meta API Compliance</p>
+              <div className="space-y-2 text-xs">
                 {[
-                  'Opt-in via WhatsApp button',
-                  '24-hour messaging window',
-                  'Approved templates only',
-                  'COPPA consent before handoff',
-                  'STOP keyword honoured',
-                ].map((item, i) => (
-                  <label key={i} className="flex items-center gap-2 text-gray-700 cursor-pointer hover:text-[#128C7E] transition-colors">
-                    <input type="checkbox" defaultChecked className="accent-green-600 rounded" />
+                  "Opt-in via WhatsApp button",
+                  "24-hour messaging window",
+                  "Approved templates only",
+                  "POPIA consent before handoff",
+                  "STOP keyword honoured",
+                ].map((item) => (
+                  <label key={item} className="flex items-center gap-2 text-gray-700 cursor-pointer">
+                    <input type="checkbox" defaultChecked className="accent-[#40aa34]" />
                     <span>{item}</span>
                   </label>
                 ))}
               </div>
             </div>
 
-            {/* Solution details */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <p className="text-sm font-bold text-gray-900 mb-3">
-                {selectedMode === 'contact'
-                  ? 'Contact Solution'
-                  : selectedMode === 'connect'
-                  ? 'Connect Solution'
-                  : selectedMode === 'convert'
-                  ? 'Convert Solution'
-                  : 'Master Workflow'}
-              </p>
-              <div className="space-y-2.5 text-xs">
-                <div className="flex items-start gap-2">
-                  <span className="text-[#128C7E] font-bold flex-shrink-0 pt-0.5">Use case</span>
-                  <span className="text-gray-700">
-                    {selectedMode === 'contact'
-                      ? 'Capture & qualify leads'
-                      : selectedMode === 'connect'
-                      ? 'Engage with expert advice'
-                      : selectedMode === 'convert'
-                      ? 'Direct purchase on WhatsApp'
-                      : 'All three solutions combined'}
-                  </span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[#128C7E] font-bold flex-shrink-0 pt-0.5">Trigger</span>
-                  <span className="text-gray-700">Customer clicked Meta Ad</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[#128C7E] font-bold flex-shrink-0 pt-0.5">Avg time</span>
-                  <span className="text-gray-700">~2-4 min</span>
-                </div>
-                <div className="flex items-start gap-2">
-                  <span className="text-[#128C7E] font-bold flex-shrink-0 pt-0.5">Conversion</span>
-                  <span className="text-[#128C7E] font-bold">+38%</span>
-                </div>
+              <p className="text-sm font-bold text-gray-900 mb-3">{mode.label} Solution</p>
+              <div className="space-y-2 text-xs">
+                <div className="flex justify-between"><span className="text-[#128C7E] font-bold">Use case</span><span className="text-gray-700">{mode.tagline}</span></div>
+                <div className="flex justify-between"><span className="text-[#128C7E] font-bold">Trigger</span><span className="text-gray-700">Meta Ad click</span></div>
+                <div className="flex justify-between"><span className="text-[#128C7E] font-bold">Avg time</span><span className="text-gray-700">~2-4 min</span></div>
+                <div className="flex justify-between"><span className="text-[#128C7E] font-bold">Conversion</span><span className="text-[#40aa34] font-bold">+38%</span></div>
               </div>
             </div>
 
-            {/* Quick docs */}
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-200">
-              <p className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-3">Documentation</p>
+              <p className="text-[0.62rem] font-bold text-gray-500 uppercase tracking-wider mb-3">Documentation</p>
               <div className="space-y-1.5 text-xs">
-                {['Cloud API reference', 'Interactive messages', 'Catalog & commerce', 'Product catalog API'].map(
-                  (doc, i) => (
-                    <p key={i} className="flex items-center gap-2 text-gray-700 hover:text-[#128C7E] cursor-pointer transition-colors">
-                      <CheckCircle2 className="w-3 h-3 text-green-600 flex-shrink-0" />
-                      {doc}
-                    </p>
-                  )
-                )}
+                {["Cloud API reference", "Interactive messages", "Catalog & commerce", "Product catalog API"].map((doc) => (
+                  <p key={doc} className="flex items-center gap-2 text-gray-700 hover:text-[#128C7E] cursor-pointer transition">
+                    <CheckCircle2 className="w-3 h-3 text-[#40aa34] flex-shrink-0" /> {doc}
+                  </p>
+                ))}
               </div>
             </div>
-          </div>
+          </aside>
         </div>
       </div>
     );
   }
 
-  // Landing page with rocket background
+  // ════════════ LANDING ════════════
   return (
     <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
-      {/* Hero Header with Rocket Background */}
+      {/* Hero */}
       <header
-        className="relative overflow-hidden py-12 sm:py-16 lg:py-20 flex-shrink-0"
+        className="relative overflow-hidden py-12 sm:py-16 lg:py-20"
         style={{
-          backgroundImage: 'url(/Rocket.jpg)',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
+          backgroundImage: "url(/Rocket.jpg)",
+          backgroundSize: "cover",
+          backgroundPosition: "center",
         }}
       >
         <div className="absolute inset-0 bg-gradient-to-r from-[#044137]/85 via-[#075E54]/80 to-[#128C7E]/85" />
-        <div className="absolute inset-0 opacity-5" style={{ backgroundImage: 'radial-gradient(circle at 20% 80%, white 1px, transparent 1px), radial-gradient(circle at 80% 20%, white 1px, transparent 1px)', backgroundSize: '40px 40px' }} />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="flex flex-col lg:flex-row items-center gap-8 lg:gap-12">
@@ -429,30 +390,30 @@ export default function App() {
                 <span className="text-white font-bold text-2xl">rather.chat</span>
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
-                If you're not conversing,<br />
+                If you're not conversing,
+                <br />
                 <span className="text-[#25D366]">you're not converting.</span>
               </h1>
               <p className="mt-6 text-green-100 text-lg max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                AI-powered WhatsApp sales solutions. Contact, Connect, and Convert your customers in real time — at scale.
+                AI-powered WhatsApp sales solutions. Contact, Connect, and Convert customers in real time — at scale.
               </p>
 
               <div className="flex flex-wrap gap-2 mt-8 justify-center lg:justify-start">
-                {FEATURES.map((f, i) => (
-                  <span key={i} className="flex items-center gap-1.5 text-sm text-green-100 bg-white/15 backdrop-blur-sm border border-white/25 px-3 py-2 rounded-full hover:bg-white/20 transition-colors">
-                    <span className="text-[#25D366]">{f.icon}</span>
+                {FEATURES.map((f) => (
+                  <span key={f.label} className="flex items-center gap-1.5 text-sm text-green-100 bg-white/15 backdrop-blur-sm border border-white/25 px-3 py-2 rounded-full">
+                    <f.Icon className="w-4 h-4 text-[#25D366]" />
                     <span className="hidden sm:inline">{f.label}</span>
                   </span>
                 ))}
               </div>
             </div>
 
-            {/* Stats Cards */}
             <div className="grid grid-cols-2 gap-4 flex-shrink-0 w-full lg:w-auto">
-              {STATS.map((stat, i) => (
-                <div key={i} className="bg-white/15 backdrop-blur-sm border border-white/25 rounded-2xl p-5 text-center hover:bg-white/20 transition-all shadow-lg">
-                  <div className="flex justify-center text-[#25D366] mb-2">{stat.icon}</div>
-                  <p className="text-2xl sm:text-3xl font-black text-white">{stat.value}</p>
-                  <p className="text-green-200 text-xs mt-2 leading-tight">{stat.label}</p>
+              {STATS.map((s) => (
+                <div key={s.label} className="bg-white/15 backdrop-blur-sm border border-white/25 rounded-2xl p-5 text-center shadow-lg">
+                  <s.Icon className="w-5 h-5 mx-auto text-[#25D366] mb-2" />
+                  <p className="text-2xl sm:text-3xl font-black text-white">{s.value}</p>
+                  <p className="text-green-200 text-xs mt-2">{s.label}</p>
                 </div>
               ))}
             </div>
@@ -465,56 +426,58 @@ export default function App() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
           <div className="text-center mb-12">
             <span className="inline-flex items-center gap-2 bg-[#128C7E]/10 text-[#128C7E] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full border border-[#128C7E]/20">
-              <Zap className="w-3 h-3" />
-              Interactive Live Demos
+              <Zap className="w-3 h-3" /> Interactive Live Demos
             </span>
             <h2 className="text-3xl sm:text-4xl font-extrabold text-gray-900 mt-4">
               Three Solutions. One Platform. Proven Results.
             </h2>
-            <p className="text-gray-600 mt-3 max-w-2xl mx-auto text-base leading-relaxed">
+            <p className="text-gray-600 mt-3 max-w-2xl mx-auto">
               Personalise the demo with your client's details, then explore each solution or run the complete Master Demo workflow.
             </p>
           </div>
 
           <div className="grid lg:grid-cols-3 gap-8">
-            {/* Left: Config Panel */}
+            {/* Config */}
             <div className="space-y-6">
-              <CompanyInput onSubmit={handleGenerateDemo} isLoading={isGenerating} />
-
-              {/* About section */}
+              <CompanyInput onSubmit={handleGenerate} isLoading={isGenerating} />
               <div className="bg-gradient-to-br from-[#044137] to-[#075E54] rounded-2xl p-6 text-white shadow-lg">
                 <h3 className="font-bold text-lg mb-4">Why WhatsApp?</h3>
                 <ul className="space-y-2.5 text-sm text-green-100">
-                  <li className="flex items-center gap-2"><span className="text-[#25D366] font-bold text-lg leading-none">✓</span> 28–29M South Africans use WhatsApp</li>
-                  <li className="flex items-center gap-2"><span className="text-[#25D366] font-bold text-lg leading-none">✓</span> 72% prefer it over phone, SMS, email</li>
-                  <li className="flex items-center gap-2"><span className="text-[#25D366] font-bold text-lg leading-none">✓</span> 70–90%+ open/read rates</li>
-                  <li className="flex items-center gap-2"><span className="text-[#25D366] font-bold text-lg leading-none">✓</span> 4–5x higher engagement than email</li>
-                  <li className="flex items-center gap-2"><span className="text-[#25D366] font-bold text-lg leading-none">✓</span> 60% uplift in conversion rates</li>
+                  {[
+                    "28\u201329M South Africans use WhatsApp",
+                    "72% prefer it over phone, SMS, email",
+                    "70\u201390%+ open/read rates",
+                    "4\u20135x higher engagement than email",
+                    "60% uplift in conversion rates",
+                  ].map((t) => (
+                    <li key={t} className="flex items-center gap-2">
+                      <span className="text-[#25D366] font-bold text-lg leading-none">\u2713</span>
+                      {t}
+                    </li>
+                  ))}
                 </ul>
-                <a href="mailto:human@rather.chat" className="mt-5 inline-flex items-center gap-2 text-[#25D366] text-sm font-semibold hover:text-green-300 transition-colors">
+                <a href="mailto:human@rather.chat" className="mt-5 inline-flex items-center gap-2 text-[#25D366] text-sm font-semibold hover:text-green-300">
                   Get started <ArrowRight className="w-4 h-4" />
                 </a>
               </div>
             </div>
 
-            {/* Center & Right: Demo cards + How it works */}
+            {/* Cards */}
             <div className="lg:col-span-2">
-              {/* Solution Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5 mb-8">
-                {[
-                  { id: 'contact', label: 'Contact', desc: 'Lead capture & qualification', icon: <PhoneCall className="w-6 h-6" />, color: 'text-blue-600 bg-blue-50', gradient: 'from-blue-600 to-blue-500' },
-                  { id: 'connect', label: 'Connect', desc: 'Engagement & expert advice', icon: <Users className="w-6 h-6" />, color: 'text-teal-600 bg-teal-50', gradient: 'from-teal-600 to-teal-500' },
-                  { id: 'convert', label: 'Convert', desc: 'Direct purchase in WhatsApp', icon: <ShoppingCart className="w-6 h-6" />, color: 'text-green-600 bg-green-50', gradient: 'from-green-600 to-green-500' },
-                ].map((item) => (
-                  <div key={item.id} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all hover:border-gray-200 group">
-                    <div className={`w-12 h-12 rounded-lg ${item.color} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                      {item.icon}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+                {DEMO_MODES.filter((d) => d.id !== "master").map((m) => (
+                  <div key={m.id} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all group">
+                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${m.color} text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                      <m.Icon className="w-6 h-6" />
                     </div>
-                    <p className="font-bold text-gray-900 text-lg">{item.label}</p>
-                    <p className="text-gray-600 text-sm mt-2">{item.desc}</p>
+                    <p className="font-bold text-gray-900 text-lg">{m.label}</p>
+                    <p className="text-gray-600 text-sm mt-2">{m.description}</p>
                     <button
-                      onClick={() => { setSelectedMode(item.id as DemoMode); setShowDemo(true); }}
-                      className={`mt-5 w-full text-sm font-semibold px-4 py-3 rounded-lg bg-gradient-to-r ${item.gradient} text-white hover:shadow-lg transition-all hover:scale-105`}
+                      onClick={() => {
+                        setSelectedMode(m.id);
+                        setShowDemo(true);
+                      }}
+                      className={`mt-5 w-full text-sm font-semibold px-4 py-3 rounded-lg bg-gradient-to-r ${m.color} text-white hover:shadow-lg transition-all`}
                     >
                       Try Demo
                     </button>
@@ -522,14 +485,9 @@ export default function App() {
                 ))}
               </div>
 
-              {/* Master Demo Card */}
               <div
-                className="rounded-xl p-8 text-white mb-8 overflow-hidden relative shadow-xl"
-                style={{
-                  backgroundImage: 'url(/Rocket.jpg)',
-                  backgroundSize: 'cover',
-                  backgroundPosition: 'center',
-                }}
+                className="rounded-xl p-8 text-white relative overflow-hidden shadow-xl"
+                style={{ backgroundImage: "url(/Rocket.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
               >
                 <div className="absolute inset-0 bg-gradient-to-r from-[#044137]/92 via-[#075E54]/88 to-[#128C7E]/92" />
                 <div className="relative z-10">
@@ -539,43 +497,19 @@ export default function App() {
                     </div>
                     <h3 className="font-bold text-2xl">Master Demo</h3>
                   </div>
-                  <p className="text-green-100 text-base mb-6 leading-relaxed max-w-2xl">
-                    Experience the complete Contact → Connect → Convert workflow in one seamless demo. See all three solutions working together across a real sales journey.
+                  <p className="text-green-100 text-base mb-6 max-w-2xl">
+                    Experience the complete Contact, Connect, Convert workflow in one seamless demo.
                   </p>
                   <button
-                    onClick={() => { setSelectedMode('master'); setShowDemo(true); }}
-                    className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20c15c] text-[#044137] font-bold px-6 py-3 rounded-lg transition-all hover:shadow-lg hover:scale-105"
+                    onClick={() => {
+                      setSelectedMode("master");
+                      setShowDemo(true);
+                    }}
+                    className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20c15c] text-[#044137] font-bold px-6 py-3 rounded-lg transition-all"
                   >
-                    Launch Master Demo <ArrowRight className="w-5 h-5" />
+                    <Play className="w-4 h-4" />
+                    Launch Master Demo
                   </button>
-                </div>
-              </div>
-
-              {/* How It Works */}
-              <div className="bg-gradient-to-r from-[#075E54]/8 to-[#128C7E]/8 border border-[#128C7E]/20 rounded-xl p-8">
-                <h3 className="font-bold text-gray-900 text-xl mb-6">How It Works</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  <div className="flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-[#128C7E] text-white flex items-center justify-center font-bold text-lg flex-shrink-0">1</div>
-                    <div>
-                      <p className="font-semibold text-gray-900 text-base">Enter Client Details</p>
-                      <p className="text-gray-600 text-sm mt-1">Provide company name, URL, and industry to personalise the demo.</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-[#128C7E] text-white flex items-center justify-center font-bold text-lg flex-shrink-0">2</div>
-                    <div>
-                      <p className="font-semibold text-gray-900 text-base">Choose Your Flow</p>
-                      <p className="text-gray-600 text-sm mt-1">Select Contact, Connect, Convert, or Master to see it in action.</p>
-                    </div>
-                  </div>
-                  <div className="flex gap-4">
-                    <div className="w-10 h-10 rounded-full bg-[#128C7E] text-white flex items-center justify-center font-bold text-lg flex-shrink-0">3</div>
-                    <div>
-                      <p className="font-semibold text-gray-900 text-base">Auto or Manual Mode</p>
-                      <p className="text-gray-600 text-sm mt-1">Watch it run automatically or interact manually with the conversation.</p>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -595,11 +529,11 @@ export default function App() {
             <div className="flex-1 text-center sm:text-left">
               <h3 className="font-bold text-gray-900 text-lg">Meta Verified Technology Partner</h3>
               <p className="text-gray-600 text-sm mt-2">
-                All conversations follow Meta's WhatsApp Business API guidelines — opt-in compliance, 24-hour messaging window policy, approved message templates, and end-to-end encryption.
+                All conversations follow Meta's WhatsApp Business API guidelines — opt-in compliance, 24-hour messaging window, approved templates, and end-to-end encryption.
               </p>
             </div>
             <div className="flex-shrink-0 flex flex-col gap-2 text-xs">
-              {['WABA Compliant', 'Opt-in Based', 'Template Approved', 'E2E Encrypted'].map(t => (
+              {["WABA Compliant", "Opt-in Based", "Template Approved", "E2E Encrypted"].map((t) => (
                 <span key={t} className="flex items-center gap-1 text-green-700 bg-green-50 px-3 py-1.5 rounded-full font-medium">
                   <CheckCircle2 className="w-3.5 h-3.5" />{t}
                 </span>
@@ -612,11 +546,11 @@ export default function App() {
       {/* Footer */}
       <footer className="bg-gradient-to-r from-[#044137] via-[#075E54] to-[#128C7E] text-center py-8 flex-shrink-0">
         <p className="text-green-200 text-sm">
-          powered by{' '}
+          powered by{" "}
           <a href="https://rather.chat" target="_blank" rel="noopener noreferrer" className="text-[#25D366] font-bold hover:text-green-300 transition-colors">
             rather.chat
           </a>
-          {' '}· AI-Powered WhatsApp Sales Solutions · <a href="mailto:human@rather.chat" className="text-green-300 hover:text-white transition-colors">human@rather.chat</a>
+          {" "}\u00B7 AI-Powered WhatsApp Sales Solutions \u00B7 <a href="mailto:human@rather.chat" className="text-green-300 hover:text-white transition-colors">human@rather.chat</a>
         </p>
       </footer>
     </div>

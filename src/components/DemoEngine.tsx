@@ -1,176 +1,190 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Message, DemoContext, FlowStep, DemoMode } from '../types';
-import { getContactFlow, getConvertFlow, getConnectFlow, getMasterFlow } from '../lib/conversationFlows';
-import { createDemoSession, saveDemoLead } from '../lib/supabase';
-import WhatsAppDemo from './WhatsAppDemo';
-import { RefreshCw, Play, Pause, Zap, User } from 'lucide-react';
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { DemoContext, FlowStep, Message, QuickReply } from "@/types";
+import type { DemoMode } from "@/types";
+import { getContactFlow, getConvertFlow, getConnectFlow, getMasterFlow } from "@/lib/conversationFlows";
+import { createDemoSession, saveDemoLead } from "@/lib/supabase";
+import { PhoneScreen } from "./PhoneScreen";
 
-// South African auto-fill data for demo
 const SA_AUTO_FILL = {
-  names: ['Thabo Mthembu', 'Lerato Ndlovu', 'Ayanda Sibiya', 'Naledi Mtshali', 'Sipho Khumalo', 'Lindiwe Botha'],
-  phones: ['+27 82 123 4567', '+27 73 234 5678', '+27 65 345 6789', '+27 81 456 7890', '+27 71 567 8901', '+27 72 678 9012'],
-  emails: ['thabo@email.com', 'lerato@email.com', 'ayanda@email.com', 'naledi@email.com', 'sipho@email.com', 'lindiwe@email.com'],
+  names: ["Thabo Mthembu", "Lerato Ndlovu", "Ayanda Sibiya", "Naledi Mtshali", "Sipho Khumalo", "Lindiwe Botha"],
+  phones: ["+27 82 123 4567", "+27 73 234 5678", "+27 65 345 6789", "+27 81 456 7890", "+27 71 567 8901", "+27 72 678 9012"],
+  emails: ["thabo@email.com", "lerato@email.com", "ayanda@email.com", "naledi@email.com", "sipho@email.com", "lindiwe@email.com"],
 };
 
 interface DemoEngineProps {
   mode: DemoMode;
   context: DemoContext;
-  onReset?: () => void;
-  autoMode?: boolean;
-  onAutoModeChange?: (enabled: boolean) => void;
+  autoMode: boolean;
   speed?: number;
+  onStatsChange?: (s: { botCount: number; userCount: number; progress: number; dataPoints: number }) => void;
 }
 
-function getFlow(mode: DemoMode, ctx: DemoContext): FlowStep[] {
+function getFlowFor(mode: DemoMode, ctx: DemoContext): FlowStep[] {
   switch (mode) {
-    case 'contact': return getContactFlow(ctx);
-    case 'convert': return getConvertFlow(ctx);
-    case 'connect': return getConnectFlow(ctx);
-    case 'master': return getMasterFlow(ctx);
+    case "contact": return getContactFlow(ctx);
+    case "convert": return getConvertFlow(ctx);
+    case "connect": return getConnectFlow(ctx);
+    case "master": return getMasterFlow(ctx);
   }
 }
 
 function resolveMessage(step: FlowStep, ctx: DemoContext): string {
-  if (typeof step.botMessage === 'function') return step.botMessage(ctx);
-  return step.botMessage;
+  return typeof step.botMessage === "function" ? step.botMessage(ctx) : step.botMessage;
 }
 
-function resolveButtons(step: FlowStep, ctx: DemoContext) {
+function resolveButtons(step: FlowStep, ctx: DemoContext): QuickReply[] | undefined {
   if (!step.buttons) return undefined;
-  if (typeof step.buttons === 'function') return (step.buttons as (ctx: DemoContext) => any[])(ctx);
+  if (typeof step.buttons === "function") return step.buttons(ctx);
   return step.buttons;
 }
 
-export default function DemoEngine({ mode, context, onReset, autoMode: externalAutoMode, onAutoModeChange, speed: externalSpeed }: DemoEngineProps) {
+export function DemoEngine({ mode, context, autoMode, speed = 1, onStatsChange }: DemoEngineProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [stepIdx, setStepIdx] = useState(0);
   const [ctx, setCtx] = useState<DemoContext>({ ...context });
   const [isTyping, setIsTyping] = useState(false);
-  const [autoMode, setAutoMode] = useState(externalAutoMode ?? false);
   const [waitingInput, setWaitingInput] = useState(false);
   const [inputConfig, setInputConfig] = useState<{ placeholder: string; key: string } | null>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
-  const [speed, setSpeed] = useState(externalSpeed ?? 1);
-  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  // Memoize flows to avoid re-computation on every render
-  const flows = useMemo(() => getFlow(mode, ctx), [mode, ctx]);
+  const flows = useMemo(() => getFlowFor(mode, ctx), [mode, ctx]);
+  const currentStep = flows[stepIdx] || null;
+  const speedFactor = Math.max(0.4, 1 / speed);
 
-  const currentStep = flows[currentStepIndex] || null;
+  const startStep = useCallback(
+    (idx: number, ctxSnap: DemoContext) => {
+      if (idx >= flows.length) return;
+      setStepIdx(idx);
+      setIsTyping(true);
+      setWaitingInput(false);
+      setInputConfig(null);
 
+      const delay = (800 + Math.random() * 600) * speedFactor;
+      timerRef.current = setTimeout(() => {
+        setIsTyping(false);
+        const step = flows[idx];
+        const content = resolveMessage(step, ctxSnap);
+        const buttons = resolveButtons(step, ctxSnap);
+        const msg: Message = {
+          id: `bot-${Date.now()}-${Math.random()}`,
+          role: "bot",
+          content,
+          timestamp: new Date(),
+          type: step.type || (step.carousel ? "carousel" : step.buttons ? "buttons" : "text"),
+          buttons,
+          carousel: step.carousel,
+        };
+        setMessages((p) => [...p, msg]);
+
+        if (step.inputField) {
+          setWaitingInput(true);
+          setInputConfig(step.inputField as { placeholder: string; key: string });
+        }
+      }, delay);
+    },
+    [flows, speedFactor],
+  );
+
+  // Reset when mode or company changes
   useEffect(() => {
-    (async () => {
-      const session = await createDemoSession(mode, context.companyName, context.companyUrl, context.industry);
-      if (session) setSessionId(session.id);
-    })();
-    // Always attempt to start the first step (flows check is internal)
-    startStep(0, { ...context });
-    return () => { if (autoTimerRef.current) clearTimeout(autoTimerRef.current); };
-  }, [mode, context.companyName]);
+    if (timerRef.current) clearTimeout(timerRef.current);
+    setMessages([]);
+    setStepIdx(0);
+    const fresh: DemoContext = { ...context };
+    setCtx(fresh);
 
-  const addBotMessage = (step: FlowStep, ctxSnap: DemoContext) => {
-    const content = resolveMessage(step, ctxSnap);
-    const buttons = resolveButtons(step, ctxSnap);
-    const id = `bot-${Date.now()}-${Math.random()}`;
-    const msg: Message = {
-      id,
-      role: 'bot',
-      content,
-      timestamp: new Date(),
-      type: step.type || (step.carousel ? 'carousel' : step.buttons ? 'buttons' : 'text'),
-      buttons: buttons,
-      carousel: step.carousel,
+    // Create session for analytics
+    createDemoSession(mode, context.companyName, context.companyUrl, context.industry).then((s) => {
+      if (s) setSessionId(s.id);
+    });
+
+    startStep(0, fresh);
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-    setMessages(prev => [...prev, msg]);
-    return msg;
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode, context.companyName, context.industry]);
 
-  const startStep = (idx: number, ctxSnap: DemoContext) => {
-    if (idx >= flows.length) return;
-    setCurrentStepIndex(idx);
-    setIsTyping(true);
-    setWaitingInput(false);
-    setInputConfig(null);
-
-    const delay = 800 + Math.random() * 600;
-    autoTimerRef.current = setTimeout(() => {
-      setIsTyping(false);
-      const step = flows[idx];
-      addBotMessage(step, ctxSnap);
-
-      if (step.inputField) {
-        setWaitingInput(true);
-        setInputConfig(step.inputField);
+  const advance = useCallback(
+    (ctxSnap: DemoContext, fromIdx: number) => {
+      const next = fromIdx + 1;
+      if (next < flows.length) {
+        setTimeout(() => startStep(next, ctxSnap), 300 * speedFactor);
       }
-    }, delay);
-  };
+    },
+    [flows.length, speedFactor, startStep],
+  );
 
-  const advanceToNext = useCallback((ctxSnap: DemoContext, currentIdx: number) => {
-    const nextIdx = currentIdx + 1;
-    if (nextIdx < flows.length) {
-      setTimeout(() => startStep(nextIdx, ctxSnap), 300);
-    }
-  }, [flows.length]);
+  const handleUserReply = useCallback(
+    (value: string, label: string) => {
+      const userMsg: Message = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: label,
+        timestamp: new Date(),
+        type: "text",
+      };
+      setMessages((p) => [...p, userMsg]);
 
-  const handleUserReply = useCallback((value: string, label: string) => {
-    const userMsg: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: label,
-      timestamp: new Date(),
-      type: 'text',
-    };
-    setMessages(prev => [...prev, userMsg]);
+      const isProductPick = /^(quote|shop|apply|info|enquire)_/.test(value);
+      const newCtx: DemoContext = {
+        ...ctx,
+        selectedProduct: isProductPick ? label : ctx.selectedProduct,
+        userInterest: label,
+      };
+      setCtx(newCtx);
+      advance(newCtx, stepIdx);
+    },
+    [ctx, stepIdx, advance],
+  );
 
-    const newCtx = { ...ctx, selectedProduct: value.startsWith('quote_') || value.startsWith('shop_') || value.startsWith('apply_') ? label : ctx.selectedProduct, userInterest: label };
-    setCtx(newCtx);
+  const handleTextInput = useCallback(
+    (text: string) => {
+      if (!inputConfig) return;
+      const userMsg: Message = {
+        id: `user-${Date.now()}`,
+        role: "user",
+        content: text,
+        timestamp: new Date(),
+        type: "text",
+      };
+      setMessages((p) => [...p, userMsg]);
 
-    advanceToNext(newCtx, currentStepIndex);
-  }, [ctx, currentStepIndex, advanceToNext]);
+      const newCtx: DemoContext = { ...ctx, [inputConfig.key]: text };
+      setCtx(newCtx);
+      setWaitingInput(false);
+      setInputConfig(null);
 
-  const handleTextInput = useCallback((text: string) => {
-    if (!inputConfig) return;
-    const userMsg: Message = {
-      id: `user-${Date.now()}`,
-      role: 'user',
-      content: text,
-      timestamp: new Date(),
-      type: 'text',
-    };
-    setMessages(prev => [...prev, userMsg]);
+      // Save lead data when we get a phone number
+      if (inputConfig.key === "userPhone" && sessionId) {
+        saveDemoLead(sessionId, {
+          name: newCtx.userName || "",
+          phone: text,
+          email: newCtx.userEmail || "",
+          interest: newCtx.userInterest || "",
+        });
+      }
 
-    const newCtx = { ...ctx, [inputConfig.key]: text };
-    setCtx(newCtx);
-    setWaitingInput(false);
-    setInputConfig(null);
+      advance(newCtx, stepIdx);
+    },
+    [inputConfig, ctx, stepIdx, advance, sessionId],
+  );
 
-    if (inputConfig.key === 'userPhone' && sessionId) {
-      saveDemoLead(sessionId, {
-        name: newCtx.userName || '',
-        phone: text,
-        email: newCtx.userEmail || '',
-        interest: newCtx.userInterest || '',
-      });
-    }
-
-    advanceToNext(newCtx, currentStepIndex);
-  }, [inputConfig, ctx, currentStepIndex, sessionId, advanceToNext]);
-
+  // Auto-mode: auto-click buttons / carousel
   useEffect(() => {
     if (!autoMode || isTyping || waitingInput || !currentStep) return;
-
-    const hasInteraction = currentStep.buttons || currentStep.carousel;
+    const hasInteraction = !!(currentStep.buttons || currentStep.carousel);
     if (!hasInteraction) return;
+    const last = messages[messages.length - 1];
+    if (!last || last.role !== "bot") return;
 
-    const lastMsg = messages[messages.length - 1];
-    if (!lastMsg || lastMsg.role !== 'bot') return;
-
-    const delay = 1500 + Math.random() * 1000;
-    autoTimerRef.current = setTimeout(() => {
+    const delay = (1400 + Math.random() * 900) * speedFactor;
+    timerRef.current = setTimeout(() => {
       if (currentStep.buttons) {
         const btns = resolveButtons(currentStep, ctx) || [];
         if (btns.length > 0) {
-          const btn = btns[0];
+          const btn = btns[Math.floor(Math.random() * Math.min(2, btns.length))];
           handleUserReply(btn.value, btn.label);
         }
       } else if (currentStep.carousel && currentStep.carousel.length > 0) {
@@ -178,99 +192,53 @@ export default function DemoEngine({ mode, context, onReset, autoMode: externalA
         handleUserReply(item.buttons[0].action, item.title);
       }
     }, delay);
-
     return () => {
-      if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [autoMode, currentStepIndex, messages.length, currentStep, ctx, handleUserReply, isTyping, waitingInput]);
+  }, [autoMode, stepIdx, messages.length, currentStep, ctx, handleUserReply, isTyping, waitingInput, speedFactor]);
 
-  // Auto-fill text input fields in auto-mode
+  // Auto-mode: auto-fill text inputs
   useEffect(() => {
     if (!autoMode || !waitingInput || !inputConfig) return;
-
-    const getRandomValue = (field: string): string => {
-      const idx = Math.floor(Math.random() * 6);
+    const getValue = (field: string) => {
+      const i = Math.floor(Math.random() * 6);
       switch (field) {
-        case 'userName':
-          return SA_AUTO_FILL.names[idx];
-        case 'userPhone':
-          return SA_AUTO_FILL.phones[idx];
-        case 'userEmail':
-          return SA_AUTO_FILL.emails[idx];
-        case 'userIdNumber':
-          return `${Math.floor(Math.random() * 90000) + 10000}${Math.floor(Math.random() * 9000) + 1000}`;
-        default:
-          return '';
+        case "userName": return SA_AUTO_FILL.names[i];
+        case "userPhone": return SA_AUTO_FILL.phones[i];
+        case "userEmail": return SA_AUTO_FILL.emails[i];
+        case "userIdNumber": return `${Math.floor(Math.random() * 90000) + 10000}${Math.floor(Math.random() * 9000) + 1000}1086`;
+        default: return "Auto reply";
       }
     };
-
-    const delay = 1500 + Math.random() * 1000;
-    autoTimerRef.current = setTimeout(() => {
-      const value = getRandomValue(inputConfig.key);
-      if (value) {
-        handleTextInput(value);
-      }
+    const delay = (1400 + Math.random() * 800) * speedFactor;
+    timerRef.current = setTimeout(() => {
+      handleTextInput(getValue(inputConfig.key));
     }, delay);
-
     return () => {
-      if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
+      if (timerRef.current) clearTimeout(timerRef.current);
     };
-  }, [autoMode, waitingInput, inputConfig, handleTextInput]);
+  }, [autoMode, waitingInput, inputConfig, handleTextInput, speedFactor]);
 
-  const handleReset = () => {
-    if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
-    setMessages([]);
-    setCurrentStepIndex(0);
-    setCtx({ ...context });
-    setIsTyping(false);
-    setWaitingInput(false);
-    setInputConfig(null);
-    setAutoMode(false);
-    if (onAutoModeChange) onAutoModeChange(false);
-    setTimeout(() => startStep(0, { ...context }), 200);
-  };
-
-  const handleAutoModeChange = (enabled: boolean) => {
-    setAutoMode(enabled);
-    if (onAutoModeChange) onAutoModeChange(enabled);
-  };
+  // Report stats up
+  useEffect(() => {
+    const botCount = messages.filter((m) => m.role === "bot").length;
+    const userCount = messages.filter((m) => m.role === "user").length;
+    const progress = Math.min(100, Math.round((stepIdx / Math.max(1, flows.length - 1)) * 100));
+    const dataPoints = ["userName", "userPhone", "userEmail", "userIdNumber", "userInterest", "selectedProduct"].filter(
+      (k) => !!(ctx as Record<string, string | undefined>)[k],
+    ).length;
+    onStatsChange?.({ botCount, userCount, progress, dataPoints });
+  }, [messages, stepIdx, flows.length, ctx, onStatsChange]);
 
   return (
-    <div className="relative flex flex-col h-full">
-      {/* WhatsApp UI with its own phone frame */}
-      <div className="flex-1 overflow-hidden">
-        <WhatsAppDemo
-          messages={messages}
-          onUserReply={handleUserReply}
-          onTextInput={handleTextInput}
-          inputFieldConfig={waitingInput ? inputConfig : null}
-          isTyping={isTyping}
-          companyName={ctx.companyName}
-          disabled={autoMode || isTyping}
-        />
-      </div>
-
-      {/* Floating controls overlay */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-40 flex items-center gap-2 bg-black/60 backdrop-blur-md rounded-full px-3 py-1.5 shadow-lg border border-white/10">
-        <div className={`w-1.5 h-1.5 rounded-full ${autoMode ? 'bg-[#25D366] animate-pulse' : 'bg-white/40'}`} />
-        <span className="text-[10px] font-medium text-white/80">{autoMode ? 'Auto' : 'Manual'}</span>
-        <button
-          onClick={() => handleAutoModeChange(!autoMode)}
-          className={`flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold transition-all ${
-            autoMode ? 'bg-white/20 text-white hover:bg-white/30' : 'bg-[#25D366] text-[#044137] hover:bg-[#20c15c]'
-          }`}
-        >
-          {autoMode ? <Pause className="w-3 h-3" /> : <Play className="w-3 h-3" />}
-          {autoMode ? 'Pause' : 'Play'}
-        </button>
-        <button
-          onClick={handleReset}
-          className="flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-semibold bg-white/20 text-white hover:bg-white/30 transition-all"
-        >
-          <RefreshCw className="w-3 h-3" />
-          Reset
-        </button>
-      </div>
-    </div>
+    <PhoneScreen
+      messages={messages}
+      isTyping={isTyping}
+      ctx={ctx}
+      inputFieldConfig={inputConfig}
+      disabled={autoMode}
+      onUserReply={handleUserReply}
+      onTextInput={handleTextInput}
+    />
   );
 }

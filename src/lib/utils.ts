@@ -53,3 +53,13 @@ export function detectIndustry(url: string, name: string): string {
 
 // Capitalize first letter of each word
 export const capitalize = (s: string) => s.replace(/\b\w/g, (c) => c.toUpperCase());
+
+// Normalize industry string to one of our known values
+const VALID_INDUSTRIES = ['insurance', 'retail', 'finance', 'solar', 'general'] as const;
+export function normalizeIndustry(raw: string): string {
+  const lower = raw.toLowerCase().trim();
+  for (const valid of VALID_INDUSTRIES) {
+    if (lower.includes(valid)) return valid;
+  }
+  return 'general';
+}

@@ -25,6 +25,7 @@ export interface CarouselItem {
   title: string;
   subtitle: string;
   price?: string;
+  badge?: string;
   imageUrl: string;
   buttons: { label: string; action: string }[];
 }
@@ -39,7 +40,7 @@ export interface FlowStep {
   id: string;
   botMessage: string | ((ctx: DemoContext) => string);
   type?: 'text' | 'buttons' | 'carousel' | 'list' | 'image';
-  buttons?: QuickReply[];
+  buttons?: QuickReply[] | ((ctx: DemoContext) => QuickReply[]);
   carousel?: CarouselItem[];
   listItems?: ListItem[];
   inputField?: { placeholder: string; key: keyof DemoContext };
@@ -52,9 +53,12 @@ export interface DemoContext {
   companyName: string;
   companyUrl: string;
   industry: string;
+  accent?: string;
+  logo?: string;
   userName?: string;
   userPhone?: string;
   userEmail?: string;
+  userIdNumber?: string;
   userInterest?: string;
   selectedProduct?: string;
   policyType?: string;
