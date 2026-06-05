@@ -36,7 +36,7 @@ export function CompanyInput({
   const [name, setName] = useState(" ");
   const [url, setUrl] = useState(" ");
   const [industry, setIndustry] = useState("Auto");
-  const [scraping, setScraping] = useState(false);
+  const [scraping, setScraping] = useState(true);
   const [status, setStatus] = useState<{ kind: "ok" | "warn" | "err"; text: string } | null>(null);
   const [scrapedExtras, setScrapedExtras] = useState<{ accent?: string; logo?: string }>({});
 
