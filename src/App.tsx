@@ -295,31 +295,19 @@ export default function App() {
             />
             <div className="absolute inset-0 bg-gradient-to-r from-[#0f1419]/75 via-[#1a1f28]/70 to-[#0f1419]/75" />
 
-            {/* Phone mockup */}
-            <div className="relative z-10">
-              <div className="rounded-3xl bg-gray-900 shadow-2xl overflow-hidden w-full max-w-sm lg:max-w-md" style={{ aspectRatio: '9/16', minHeight: '600px' }}>
-                {/* Notch */}
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 w-32 h-7 bg-gray-900 rounded-b-3xl z-30 border-2 border-gray-800" />
-                {/* Screen */}
-                <div className="absolute inset-0 top-7 bg-white overflow-hidden rounded-b-3xl">
-                  <DemoEngine
-                    key={`${selectedMode}-${demoKey}`}
-                    mode={selectedMode}
-                    context={context}
-                    autoMode={demoStarted && autoMode}
-                    onAutoModeChange={(enabled) => {
-                      setDemoStarted(true);
-                      setAutoMode(enabled);
-                    }}
-                    speed={speed}
-                  />
-                </div>
-                {/* Bottom pill */}
-                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 w-24 h-1 bg-gray-800 rounded-full z-30" />
-                {/* Side bezels */}
-                <div className="absolute inset-y-0 left-0 w-1.5 bg-gray-900 z-40" />
-                <div className="absolute inset-y-0 right-0 w-1.5 bg-gray-900 z-40" />
-              </div>
+            {/* Demo engine renders its own phone frame */}
+            <div className="relative z-10 w-full h-full max-w-md">
+              <DemoEngine
+                key={`${selectedMode}-${demoKey}`}
+                mode={selectedMode}
+                context={context}
+                autoMode={demoStarted && autoMode}
+                onAutoModeChange={(enabled) => {
+                  setDemoStarted(true);
+                  setAutoMode(enabled);
+                }}
+                speed={speed}
+              />
             </div>
 
             {/* Center text overlay */}
