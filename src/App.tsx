@@ -423,8 +423,8 @@ export default function App() {
 
       {/* Demo Section */}
       <main className="flex-1 bg-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 lg:py-20">
-          <div className="text-center mb-12">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 lg:py-14">
+          <div className="text-center mb-8">
             <span className="inline-flex items-center gap-2 bg-[#128C7E]/10 text-[#128C7E] text-xs font-bold uppercase tracking-widest px-4 py-2 rounded-full border border-[#128C7E]/20">
               <Zap className="w-3 h-3" /> Interactive Live Demos
             </span>
@@ -436,35 +436,15 @@ export default function App() {
             </p>
           </div>
 
-          <div className="grid lg:grid-cols-3 gap-8">
+          <div className="grid lg:grid-cols-3 gap-6">
             {/* Config */}
-            <div className="space-y-6">
+            <div>
               <CompanyInput onSubmit={handleGenerate} isLoading={isGenerating} />
-              <div className="bg-gradient-to-br from-[#044137] to-[#075E54] rounded-2xl p-6 text-white shadow-lg">
-                <h3 className="font-bold text-lg mb-4">Why WhatsApp?</h3>
-                <ul className="space-y-2.5 text-sm text-green-100">
-                  {[
-                    "28\u201329M South Africans use WhatsApp",
-                    "72% prefer it over phone, SMS, email",
-                    "70\u201390%+ open/read rates",
-                    "4\u20135x higher engagement than email",
-                    "60% uplift in conversion rates",
-                  ].map((t) => (
-                    <li key={t} className="flex items-center gap-2">
-                      <span className="text-[#25D366] font-bold text-lg leading-none">\u2713</span>
-                      {t}
-                    </li>
-                  ))}
-                </ul>
-                <a href="mailto:human@rather.chat" className="mt-5 inline-flex items-center gap-2 text-[#25D366] text-sm font-semibold hover:text-green-300">
-                  Get started <ArrowRight className="w-4 h-4" />
-                </a>
-              </div>
             </div>
 
-            {/* Cards */}
+            {/* Cards + Why WhatsApp */}
             <div className="lg:col-span-2">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
                 {DEMO_MODES.filter((d) => d.id !== "master").map((m) => (
                   <div key={m.id} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all group">
                     <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${m.color} text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
@@ -485,31 +465,56 @@ export default function App() {
                 ))}
               </div>
 
-              <div
-                className="rounded-xl p-8 text-white relative overflow-hidden shadow-xl"
-                style={{ backgroundImage: "url(/Rocket.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
-              >
-                <div className="absolute inset-0 bg-gradient-to-r from-[#044137]/92 via-[#075E54]/88 to-[#128C7E]/92" />
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                      <Zap className="w-7 h-7 text-[#25D366]" />
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <div
+                  className="rounded-xl p-8 text-white relative overflow-hidden shadow-xl"
+                  style={{ backgroundImage: "url(/Rocket.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-r from-[#044137]/92 via-[#075E54]/88 to-[#128C7E]/92" />
+                  <div className="relative z-10">
+                    <div className="flex items-center gap-3 mb-3">
+                      <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                        <Zap className="w-7 h-7 text-[#25D366]" />
+                      </div>
+                      <h3 className="font-bold text-2xl">Master Demo</h3>
                     </div>
-                    <h3 className="font-bold text-2xl">Master Demo</h3>
+                    <p className="text-green-100 text-base mb-6 max-w-2xl">
+                      Experience the complete Contact, Connect, Convert workflow in one seamless demo.
+                    </p>
+                    <button
+                      onClick={() => {
+                        setSelectedMode("master");
+                        setShowDemo(true);
+                      }}
+                      className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20c15c] text-[#044137] font-bold px-6 py-3 rounded-lg transition-all"
+                    >
+                      <Play className="w-4 h-4" />
+                      Launch Master Demo
+                    </button>
                   </div>
-                  <p className="text-green-100 text-base mb-6 max-w-2xl">
-                    Experience the complete Contact, Connect, Convert workflow in one seamless demo.
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSelectedMode("master");
-                      setShowDemo(true);
-                    }}
-                    className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20c15c] text-[#044137] font-bold px-6 py-3 rounded-lg transition-all"
-                  >
-                    <Play className="w-4 h-4" />
-                    Launch Master Demo
-                  </button>
+                </div>
+
+                <div className="bg-gradient-to-br from-[#044137] to-[#075E54] rounded-xl p-6 text-white shadow-lg flex flex-col justify-between">
+                  <div>
+                    <h3 className="font-bold text-lg mb-4">Why WhatsApp?</h3>
+                    <ul className="space-y-2.5 text-sm text-green-100">
+                      {[
+                        "28\u201329M South Africans use WhatsApp",
+                        "72% prefer it over phone, SMS, email",
+                        "70\u201390%+ open/read rates",
+                        "4\u20135x higher engagement than email",
+                        "60% uplift in conversion rates",
+                      ].map((t) => (
+                        <li key={t} className="flex items-center gap-2">
+                          <span className="text-[#25D366] font-bold text-lg leading-none">\u2713</span>
+                          {t}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <a href="mailto:human@rather.chat" className="mt-5 inline-flex items-center gap-2 text-[#25D366] text-sm font-semibold hover:text-green-300">
+                    Get started <ArrowRight className="w-4 h-4" />
+                  </a>
                 </div>
               </div>
             </div>
