@@ -33,9 +33,9 @@ export function CompanyInput({
   onSubmit: (data: CompanySubmit) => void;
   isLoading?: boolean;
 }) {
-  const [name, setName] = useState("Solaax Energy");
-  const [url, setUrl] = useState("www.solaax.com");
-  const [industry, setIndustry] = useState("solar");
+  const [name, setName] = useState("Enter company name");
+  const [url, setUrl] = useState("Enter URL");
+  const [industry, setIndustry] = useState("Auto-detect");
   const [scraping, setScraping] = useState(false);
   const [status, setStatus] = useState<{ kind: "ok" | "warn" | "err"; text: string } | null>(null);
   const [scrapedExtras, setScrapedExtras] = useState<{ accent?: string; logo?: string }>({});
