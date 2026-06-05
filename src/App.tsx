@@ -444,10 +444,10 @@ export default function App() {
                 <h3 className="font-bold text-lg mb-4">Why WhatsApp?</h3>
                 <ul className="space-y-2.5 text-sm text-green-100">
                   {[
-                    "28\u201329M South Africans use WhatsApp",
+                    "29M South Africans use WhatsApp",
                     "72% prefer it over phone, SMS, email",
-                    "70\u201390%+ open/read rates",
-                    "4\u20135x higher engagement than email",
+                    "90%+ open/read rates",
+                    "5x higher engagement than email",
                     "60% uplift in conversion rates",
                   ].map((t) => (
                     <li key={t} className="flex items-center gap-2">
