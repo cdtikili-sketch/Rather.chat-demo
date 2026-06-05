@@ -451,7 +451,7 @@ export default function App() {
                     "60% uplift in conversion rates",
                   ].map((t) => (
                     <li key={t} className="flex items-center gap-2">
-                      <span className="text-[#25D366] font-bold text-lg leading-none">\u2713</span>
+                      <span className="text-[#25D366] font-bold text-lg leading-none">✓</span>
                       {t}
                     </li>
                   ))}
