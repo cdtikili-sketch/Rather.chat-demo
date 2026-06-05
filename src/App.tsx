@@ -437,14 +437,35 @@ export default function App() {
           </div>
 
           <div className="grid lg:grid-cols-3 gap-6">
-            {/* Config */}
-            <div>
+            {/* LEFT: Config + Why WhatsApp */}
+            <div className="space-y-5">
               <CompanyInput onSubmit={handleGenerate} isLoading={isGenerating} />
+              <div className="bg-gradient-to-br from-[#044137] to-[#075E54] rounded-2xl p-6 text-white shadow-lg">
+                <h3 className="font-bold text-lg mb-4">Why WhatsApp?</h3>
+                <ul className="space-y-2.5 text-sm text-green-100">
+                  {[
+                    "28\u201329M South Africans use WhatsApp",
+                    "72% prefer it over phone, SMS, email",
+                    "70\u201390%+ open/read rates",
+                    "4\u20135x higher engagement than email",
+                    "60% uplift in conversion rates",
+                  ].map((t) => (
+                    <li key={t} className="flex items-center gap-2">
+                      <span className="text-[#25D366] font-bold text-lg leading-none">\u2713</span>
+                      {t}
+                    </li>
+                  ))}
+                </ul>
+                <a href="mailto:human@rather.chat" className="mt-5 inline-flex items-center gap-2 text-[#25D366] text-sm font-semibold hover:text-green-300">
+                  Get started <ArrowRight className="w-4 h-4" />
+                </a>
+              </div>
             </div>
 
-            {/* Cards + Why WhatsApp */}
-            <div className="lg:col-span-2">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+            {/* RIGHT: Demo cards + How It Works */}
+            <div className="lg:col-span-2 space-y-5">
+              {/* 3 Demo Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {DEMO_MODES.filter((d) => d.id !== "master").map((m) => (
                   <div key={m.id} className="bg-white rounded-xl p-6 border border-gray-100 shadow-sm hover:shadow-lg transition-all group">
                     <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${m.color} text-white flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
@@ -465,56 +486,60 @@ export default function App() {
                 ))}
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <div
-                  className="rounded-xl p-8 text-white relative overflow-hidden shadow-xl"
-                  style={{ backgroundImage: "url(/Rocket.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
-                >
-                  <div className="absolute inset-0 bg-gradient-to-r from-[#044137]/92 via-[#075E54]/88 to-[#128C7E]/92" />
-                  <div className="relative z-10">
-                    <div className="flex items-center gap-3 mb-3">
-                      <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
-                        <Zap className="w-7 h-7 text-[#25D366]" />
-                      </div>
-                      <h3 className="font-bold text-2xl">Master Demo</h3>
+              {/* How It Works */}
+              <div className="bg-gray-50 border border-gray-200 rounded-xl p-8">
+                <h3 className="font-bold text-gray-900 text-xl mb-6">How It Works</h3>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-full bg-[#128C7E] text-white flex items-center justify-center font-bold text-lg flex-shrink-0">1</div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-base">Enter Client Details</p>
+                      <p className="text-gray-600 text-sm mt-1">Provide company name, URL, and industry to personalise the demo.</p>
                     </div>
-                    <p className="text-green-100 text-base mb-6 max-w-2xl">
-                      Experience the complete Contact, Connect, Convert workflow in one seamless demo.
-                    </p>
-                    <button
-                      onClick={() => {
-                        setSelectedMode("master");
-                        setShowDemo(true);
-                      }}
-                      className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20c15c] text-[#044137] font-bold px-6 py-3 rounded-lg transition-all"
-                    >
-                      <Play className="w-4 h-4" />
-                      Launch Master Demo
-                    </button>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-full bg-[#128C7E] text-white flex items-center justify-center font-bold text-lg flex-shrink-0">2</div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-base">Choose Your Flow</p>
+                      <p className="text-gray-600 text-sm mt-1">Select Contact, Connect, Convert, or Master to see it in action.</p>
+                    </div>
+                  </div>
+                  <div className="flex gap-4">
+                    <div className="w-10 h-10 rounded-full bg-[#128C7E] text-white flex items-center justify-center font-bold text-lg flex-shrink-0">3</div>
+                    <div>
+                      <p className="font-semibold text-gray-900 text-base">Auto or Manual Mode</p>
+                      <p className="text-gray-600 text-sm mt-1">Watch it run automatically or interact manually with the conversation.</p>
+                    </div>
                   </div>
                 </div>
+              </div>
 
-                <div className="bg-gradient-to-br from-[#044137] to-[#075E54] rounded-xl p-6 text-white shadow-lg flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-bold text-lg mb-4">Why WhatsApp?</h3>
-                    <ul className="space-y-2.5 text-sm text-green-100">
-                      {[
-                        "28\u201329M South Africans use WhatsApp",
-                        "72% prefer it over phone, SMS, email",
-                        "70\u201390%+ open/read rates",
-                        "4\u20135x higher engagement than email",
-                        "60% uplift in conversion rates",
-                      ].map((t) => (
-                        <li key={t} className="flex items-center gap-2">
-                          <span className="text-[#25D366] font-bold text-lg leading-none">\u2713</span>
-                          {t}
-                        </li>
-                      ))}
-                    </ul>
+              {/* Master Demo Card */}
+              <div
+                className="rounded-xl p-8 text-white relative overflow-hidden shadow-xl"
+                style={{ backgroundImage: "url(/Rocket.jpg)", backgroundSize: "cover", backgroundPosition: "center" }}
+              >
+                <div className="absolute inset-0 bg-gradient-to-r from-[#044137]/92 via-[#075E54]/88 to-[#128C7E]/92" />
+                <div className="relative z-10">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="w-12 h-12 rounded-lg bg-white/20 backdrop-blur-sm flex items-center justify-center">
+                      <Zap className="w-7 h-7 text-[#25D366]" />
+                    </div>
+                    <h3 className="font-bold text-2xl">Master Demo</h3>
                   </div>
-                  <a href="mailto:human@rather.chat" className="mt-5 inline-flex items-center gap-2 text-[#25D366] text-sm font-semibold hover:text-green-300">
-                    Get started <ArrowRight className="w-4 h-4" />
-                  </a>
+                  <p className="text-green-100 text-base mb-6 max-w-2xl">
+                    Experience the complete Contact, Connect, Convert workflow in one seamless demo.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setSelectedMode("master");
+                      setShowDemo(true);
+                    }}
+                    className="inline-flex items-center gap-2 bg-[#25D366] hover:bg-[#20c15c] text-[#044137] font-bold px-6 py-3 rounded-lg transition-all"
+                  >
+                    <Play className="w-4 h-4" />
+                    Launch Master Demo
+                  </button>
                 </div>
               </div>
             </div>
