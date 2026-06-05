@@ -47,7 +47,6 @@ const STATS = [
 const FEATURES = [
   { Icon: Shield, label: "Meta Verified Tech Partner" },
   { Icon: CheckCircle2, label: "WhatsApp Business API" },
-  { Icon: Star, label: "Trusted by Capitec, Hollard" },
   { Icon: BarChart3, label: "End-to-end Encrypted" },
 ];
 
@@ -385,17 +384,23 @@ export default function App() {
             <div className="flex-1 text-center lg:text-left">
               <div className="flex items-center justify-center lg:justify-start gap-3 mb-6">
                 <div className="w-14 h-14 rounded-xl shadow-lg border-2 border-white/30 bg-white/15 backdrop-blur-sm flex items-center justify-center">
-                  <MessageCircle className="w-7 h-7 text-[#25D366]" />
+                  <img src="/image.png" alt="Rather.chat logo" className="w-7 h-7" />
                 </div>
-                <span className="text-white font-bold text-2xl">rather.chat</span>
+                <span className="text-white font-bold text-4xl">rather.chat</span>
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
-                If you're not conversing,
+                make convos count.
                 <br />
-                <span className="text-[#25D366]">you're not converting.</span>
+                If you're not
+                <br />
+                conversing
+                <br />
+                Then youre not
+                <br />
+                converting
               </h1>
               <p className="mt-6 text-green-100 text-lg max-w-xl mx-auto lg:mx-0 leading-relaxed">
-                AI-powered WhatsApp sales solutions. Contact, Connect, and Convert customers in real time — at scale.
+                Powering Sales in Whatsapp
               </p>
 
               <div className="flex flex-wrap gap-2 mt-8 justify-center lg:justify-start">
