@@ -580,7 +580,7 @@ export default function App() {
           <a href="https://rather.chat" target="_blank" rel="noopener noreferrer" className="text-[#25D366] font-bold hover:text-green-300 transition-colors">
             rather.chat
           </a>
-          {" "}\u00B7 AI-Powered WhatsApp Sales Solutions \u00B7 <a href="mailto:human@rather.chat" className="text-green-300 hover:text-white transition-colors">human@rather.chat</a>
+          {" "}AI-Powered WhatsApp Sales Solutions <a href="mailto:human@rather.chat" className="text-green-300 hover:text-white transition-colors">human@rather.chat</a>
         </p>
       </footer>
     </div>
