@@ -389,9 +389,13 @@ export default function App() {
                 <span className="text-white font-bold text-2xl">rather.chat</span>
               </div>
               <h1 className="text-4xl sm:text-5xl lg:text-6xl font-extrabold text-white leading-tight">
-                If you're not conversing,
+                If you're not 
+                </br>
+              conversing,
                 <br />
-                <span className="text-[#25D366]">you're not converting.</span>
+                <span className="text-[#25D366]">you're not 
+                </br>
+              converting.</span>
               </h1>
               <p className="mt-6 text-green-100 text-lg max-w-xl mx-auto lg:mx-0 leading-relaxed">
                 AI-powered WhatsApp sales solutions. Contact, Connect, and Convert customers in real time — at scale.
